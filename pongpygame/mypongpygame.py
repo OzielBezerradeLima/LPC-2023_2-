@@ -1,10 +1,10 @@
 import pygame
 import sys
-import random
+import time
 
 
 def ball_movement():
-    global ballx, bally, b_score, p_score
+    global ballx, bally, b_score, p_score, still_playing
     ball.x += ballx * balldirect.x
     ball.y += bally * balldirect.y
     if ball.top <= 0 or ball.bottom >= height:
@@ -18,14 +18,20 @@ def ball_movement():
             p_score += 1
             scoring_sound_effect.play()
         ball_reset()
+        if b_score > 2 or p_score > 2:
+            still_playing = False
     if ball.colliderect(player):
         balldirect.x *= -1
-        balldirect.y = (player.centery - ball.y) / (180 / 2)
+        balldirect.y = ((player.centery - ball.y) / (pallet_size / 2)) * -1
         bounce_sound_effect.play()
+        ballx += 0.25
+        bally += 0.25
     if ball.colliderect(bot):
         balldirect.x *= -1
-        balldirect.y = (bot.centery - ball.y) / (180 / 2)
+        balldirect.y = ((bot.centery - ball.y) / (pallet_size / 2)) * -1
         bounce_sound_effect.play()
+        ballx += 0.25
+        bally += 0.25
 
 
 def player_animation():
@@ -45,32 +51,18 @@ def ball_reset():
     balldirect.y = 0
     bot.center = (10, height / 2)
     player.center = (width - 5, height / 2)
-    dir = random.choice(direction)
-    ang = random.choice(angle)
-    if dir == 0:
-        if ang == 0:
-            bally, ballx = -10, 5
-        if ang == 1:
-            bally, ballx = -10, 10
-    if dir == 1:
-        if ang == 0:
-            bally, ballx = 10, 5
-        if ang == 1:
-            bally, ballx = 10, 10
 
 
 # texts and measures
 width = 1280
 height = 720
-mid = (width / 2) - ((40 + 50) / 2)
+pallet_size = 180
+pallet_width = 10
+ball_size = 30
 p_score = 0
 b_score = 0
 pygame.init()
 game_font = pygame.font.Font("assets/PressStart2P.ttf", 100)
-
-# angles creatives, top and bottom []
-direction = [0, 1]
-angle = [0, 1]
 
 # songs
 bounce_sound_effect = pygame.mixer.Sound('assets/bounce.wav')
@@ -83,18 +75,20 @@ clock = pygame.time.Clock()
 bg = (0, 0, 0)
 
 # draw
-player = pygame.Rect(width - 20, height / 2 - 100, 10, 180)
-bot = pygame.Rect(10, height / 2 - 100, 10, 180)
-ball = pygame.Rect(width / 2 - 15, height / 2 - 15, 30, 30)
+player = pygame.Rect(width - 20, height / 2 - 100, pallet_width, pallet_size)
+bot = pygame.Rect(10, height / 2 - 100, pallet_width, pallet_size)
+ball = pygame.Rect(width / 2 - 15, height / 2 - 15, ball_size, ball_size)
 
+# ball and paddle speed
 ballx = 0
 bally = 0
 balldirect = pygame.math.Vector2(1, 0)
 p_speed = 0
 b_speed = 10
 a = 10
+still_playing = True
 
-while True:
+while still_playing:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -102,7 +96,6 @@ while True:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_DOWN:
                 p_speed += a
-
             if event.key == pygame.K_UP:
                 p_speed -= a
         if event.type == pygame.KEYUP:
@@ -112,33 +105,8 @@ while True:
                 p_speed += a
         if ballx == 0 or bally == 0:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_DOWN:
-                    dir = random.choice(direction)
-                    ang = random.choice(angle)
-                    if dir == 0:
-                        if ang == 0:
-                            bally, ballx = -7, 5
-                        if ang == 1:
-                            bally, ballx = -7, 5
-                    if dir == 1:
-                        if ang == 0:
-                            bally, ballx = 10, 5
-                        if ang == 1:
-                            bally, ballx = 10, 10
-
-                if event.key == pygame.K_UP:
-                    dir = random.choice(direction)
-                    ang = random.choice(angle)
-                    if dir == 0:
-                        if ang == 0:
-                            bally, ballx = -10, 5
-                        if ang == 1:
-                            bally, ballx = -10, 5
-                    if dir == 1:
-                        if ang == 0:
-                            bally, ballx = 10, 5
-                        if ang == 1:
-                            bally, ballx = 10, 5
+                if event.key == pygame.K_DOWN or event.key == pygame.K_UP:
+                    ballx, bally = 10, 10
 
     player_animation()
     ball_movement()
@@ -161,8 +129,19 @@ while True:
     pygame.draw.rect(screen, (255, 255, 255), ball)
     pygame.draw.aaline(screen, (255, 255, 255), (width / 2, 0), (width / 2, height))
     player_text = game_font.render(f"{p_score}", False, (255, 255, 255))
-    screen.blit(player_text, (740, 50))
+    screen.blit(player_text, (width / 2 + 250, 50))
     bot_text = game_font.render(f"{b_score}", False, (255, 255, 255))
     screen.blit(bot_text, (270, 50))
     pygame.display.flip()
     clock.tick(75)
+
+# END GAME SCREEN
+screen.fill((0, 0, 0))
+if p_score > b_score:
+    end_text = f"Victory"
+else:
+    end_text = f"Defeat"
+end_text_formated = game_font.render(end_text, False, (255, 255, 255))
+screen.blit(end_text_formated, (350, 300))
+pygame.display.update()
+time.sleep(4)
